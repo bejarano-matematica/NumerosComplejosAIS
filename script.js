@@ -23,7 +23,10 @@ const level3Bank = [
     { q: "2(1+i) - 3(2-i)", a: "-4+5i" }
 ];
 
-// --- MOTOR DE PARSEO MATEMÁTICO (Solo para forma binómica) ---
+// Copias dinámicas para evitar repeticiones (Mazo de cartas)
+let activeLevel2Deck = [];
+let activeLevel3Deck = [];
+
 function parseComplex(str) {
     let re = 0, im = 0, reTerms = 0, imTerms = 0;
     let s = str.replace(/[\{\}\s\\]/g, "").replace(/frac/g, "/").replace(/\^circ/g, "");
@@ -50,18 +53,16 @@ function parseComplex(str) {
 function renderMathDirectly(elementId, latexStr) {
     const el = document.getElementById(elementId);
     if (!el) return;
-    el.style.fontSize = latexStr.length > 30 ? "1.2rem" : "1.8rem";
+    
+    // OPTIMIZACIÓN VISUAL: Si la expresión es larga (como la forma polar), bajamos la fuente para que entre entera
+    el.style.fontSize = latexStr.length > 25 ? "1.1rem" : "1.5rem";
     el.innerHTML = `\\( ${latexStr} \\)`;
     
     if (window.MathJax && window.MathJax.typesetPromise) {
-        // Al retornar el promise evitamos que se encimen las peticiones al Kernel gráfico
         window.MathJax.typesetPromise([el]).then(() => {
             const mjx = el.querySelector('mjx-container');
             if (mjx) mjx.style.color = 'white';
-        }).catch(err => {
-            // Si la cola se satura, limpiamos los contenedores rotos de forma segura
-            console.warn("MathJax reset preventivo:", err);
-        });
+        }).catch(err => console.warn("MathJax reset:", err));
     }
 }
 
@@ -96,7 +97,7 @@ function formatC(re, im) {
     return s;
 }
 
-// --- GENERADOR ALEATORIO ---
+// LÓGICA DE EXTRACCIÓN SIN REPETICIÓN
 function getExercise() {
     exerciseStep++;
     if (gameState.currentLevel === 1) {
@@ -110,12 +111,16 @@ function getExercise() {
         if (type === 'div') { let z1_re = a, z1_im = b, z2_re = c, z2_im = d; let z3_re = (z1_re * z2_re) - (z1_im * z2_im); let z3_im = (z1_re * z2_im) + (z1_im * z2_re); return { q: `\\frac{${formatC(z3_re, z3_im)}}{${formatC(z2_re, z2_im)}}`, a: formatC(z1_re, z1_im), type: 'div' }; }
     } 
     else if (gameState.currentLevel === 2) {
-        let randomIndex = Math.floor(Math.random() * level2Bank.length);
-        return level2Bank[randomIndex];
+        if (activeLevel2Deck.length === 0) {
+            activeLevel2Deck = [...level2Bank].sort(() => Math.random() - 0.5);
+        }
+        return activeLevel2Deck.shift();
     } 
     else {
-        let randomIndex = Math.floor(Math.random() * level3Bank.length);
-        return level3Bank[randomIndex];
+        if (activeLevel3Deck.length === 0) {
+            activeLevel3Deck = [...level3Bank].sort(() => Math.random() - 0.5);
+        }
+        return activeLevel3Deck.shift();
     }
 }
 
@@ -130,6 +135,7 @@ function startGame() {
     document.getElementById('player-avatar-display').src = gameState.selectedAvatarImg || "https://images.unsplash.com/photo-1618336306544-cb22a9446340?q=80&w=150";
     document.getElementById('screen-start').style.display = 'none'; document.getElementById('screen-game').style.display = 'flex';
     gameState.currentLevel = 1; gameState.score = 0; gameState.playerHP = 100; gameState.monsterHP = 100; exerciseStep = 0;
+    activeLevel2Deck = []; activeLevel3Deck = []; // Reset de mazos
     initKeyboard(); updateUI(); nextExercise(); 
 }
 
@@ -234,9 +240,8 @@ function moveCursor(dir) {
 
 function clearInput() { if (!gameState.isBlocked) { playTick(); gameState.userString = ""; gameState.cursorPos = 0; renderUserAnswer(); } }
 
-function cleanC(str) { return str.replace(/\s/g, "").replace(/\\/g, "").replace(/\+i/g, "+1i").replace(/\-i/g, "-1i").replace(/^i/g, "1i"); }
+function cleanC(str) { return str.replace(/\s+/g, "").replace(/\\+/g, "").replace(/\+i/g, "+1i").replace(/\-i/g, "-1i").replace(/^i/g, "1i"); }
 
-// --- LÓGICA HÍBRIDA DE VALIDACIÓN ---
 function checkAnswer() {
     if (gameState.isGameOver || gameState.isBlocked || gameState.userString === "") return;
     playTick();
@@ -267,60 +272,40 @@ function checkAnswer() {
             return; 
         }
     }
-
     processMiss();
 }
 
-
+// TRANSICIÓN ACELERADA (De 3.5s bajó a 1.2s totales para evitar lag)
 function processHit() {
-    gameState.isBlocked = true; 
-    clearInterval(timerInterval);
-    
-    gameState.score += 100 + gameState.timeLeft; 
-    gameState.monsterHP -= 34; 
-    updateUI();
+    gameState.isBlocked = true; clearInterval(timerInterval);
+    gameState.score += 100 + gameState.timeLeft; gameState.monsterHP -= 34; updateUI();
     updateMessage("VULNERABILIDAD EXPLOTADA");
     
     setTimeout(() => { 
         if (gameState.monsterHP <= 0) {
             gameState.score += 500; 
             if (gameState.currentLevel < 3) {
-                gameState.currentLevel++; 
-                gameState.monsterHP = 100; 
-                exerciseStep = 0;
+                gameState.currentLevel++; gameState.monsterHP = 100; exerciseStep = 0;
                 
-                // LIMPIEZA CRÍTICA: Vaciamos el input display viejo para que MathJax
-                // no intente parsear símbolos inexistentes durante la transición.
-                gameState.userString = "";
-                gameState.cursorPos = 0;
+                // Reseteamos displays de entrada antes de inyectar el teclado
+                gameState.userString = ""; gameState.cursorPos = 0;
                 document.getElementById('user-input-display').innerHTML = "";
                 
                 updateUI(); 
                 updateMessage(`ACCEDIENDO AL NÚCLEO ${gameState.currentLevel}...`);
                 
-                // Tu función de audio reglamentaria
-                if (typeof playLevelUpSound === 'function') {
-                    playLevelUpSound(); 
-                }
+                if (typeof playLevelUpSound === 'function') playLevelUpSound(); 
                 
-                // Re-inicializamos el set de teclas correspondiente
-                initKeyboard(); 
-                
-                // Le damos 2.5 segundos limpios al navegador para respirar antes del próximo ejercicio
+                // Sincronización limpia de teclado y carga de ejercicio
                 setTimeout(() => { 
+                    initKeyboard();
                     gameState.isBlocked = false; 
                     nextExercise(); 
-                }, 2500);
-            } else { 
-                endGame(true); 
-            }
-        } else { 
-            gameState.isBlocked = false; 
-            nextExercise(); 
-        }
-    }, 1000);
+                }, 800);
+            } else { endGame(true); }
+        } else { gameState.isBlocked = false; nextExercise(); }
+    }, 400);
 }
-
 
 function processMiss() {
     gameState.isBlocked = true; clearInterval(timerInterval);
@@ -330,7 +315,7 @@ function processMiss() {
     const d = document.getElementById('user-input-display');
     d.classList.add('error-text'); renderMathDirectly('user-input-display', `\\text{Core: } ${currentExercise.a}`);
     animateDamage('battle-scene');
-    setTimeout(() => { gameState.isBlocked = false; if (gameState.playerHP <= 0) endGame(false); else nextExercise(); }, 3500);
+    setTimeout(() => { gameState.isBlocked = false; if (gameState.playerHP <= 0) endGame(false); else nextExercise(); }, 2000);
 }
 
 function startTimer() { if (timerInterval) clearInterval(timerInterval); gameState.timeLeft = TIME_LIMIT; updateTimerDisplay(); timerInterval = setInterval(() => { if (!gameState.isBlocked && !gameState.isGameOver) { gameState.timeLeft--; updateTimerDisplay(); if (gameState.timeLeft <= 0) { clearInterval(timerInterval); processMiss(); } } }, 1000); }
@@ -341,18 +326,12 @@ function animateDamage(id) { const el = document.getElementById(id); if(el) { el
 
 function endGame(win) {
     gameState.isGameOver = true; clearInterval(timerInterval);
-    document.getElementById('screen-game').style.display = 'none'; 
-    document.getElementById('screen-end').style.display = 'flex';
-    
-    const endTitle = document.getElementById('end-title');
-    const endMessage = document.getElementById('end-message');
-    const finalContainer = document.getElementById('final-controls-container');
-    
+    document.getElementById('screen-game').style.display = 'none'; document.getElementById('screen-end').style.display = 'flex';
+    document.getElementById('end-title').innerText = win ? "SISTEMA VULNERADO" : "CONEXIÓN PERDIDA";
+    document.getElementById('end-title').className = win ? "neon-text-cyan" : "neon-text-magenta";
+    document.getElementById('end-message').innerText = win ? "Has dominado el kernel de números complejos." : "La IA enemiga superó tus escudos.";
     document.getElementById('end-score').innerText = `PUNTAJE: ${gameState.score}`;
-    
-    // Inicializamos el registro de fallos reglamentario de la app
-    const board = document.getElementById('mistakes-board'); 
-    const list = document.getElementById('mistakes-list');
+    const board = document.getElementById('mistakes-board'); const list = document.getElementById('mistakes-list');
     list.innerHTML = '';
     if (gameState.mistakes.length > 0) {
         board.style.display = 'block';
@@ -363,33 +342,6 @@ function endGame(win) {
         });
         if (window.MathJax) MathJax.typesetPromise([list]);
     } else { board.style.display = 'none'; }
-
-    // --- RAMIFICACIÓN DE LA BROMA DEL BOTÓN ---
-    if (win) {
-        endTitle.innerText = "SISTEMA VULNERADO";
-        endTitle.className = "neon-text-cyan";
-        endMessage.innerText = "NÚCLEO ACCESIBLE. SELECCIONA LA ACCIÓN EN LAS ACTAS DE PRECEPTORÍA:";
-        
-        // Estructuramos la caja con altura fija para que el botón tenga rango de huida
-        finalContainer.style.height = "180px";
-        
-        // Inyectamos el botón Troll inatrapable y el botón real de Diciembre
-        finalContainer.innerHTML = `
-            <button id="btn-aprobaste" tabindex="-1" onmouseover="dodgeButton(this)" ontouchstart="dodgeButton(this, event)" onclick="dodgeButton(this, event)" style="position: absolute; left: 10%; top: 40px; font-size: 1.2em; background: var(--cyan); color: #000; border: none; padding: 12px 25px; cursor: pointer; transition: none !important; z-index: 10; border-radius: 4px; font-family: var(--font-main); font-weight: bold; box-shadow: 0 0 10px var(--cyan); margin:0;">
-                Aprobaste
-            </button>
-            <button onclick="acceptDefeat()" style="position: absolute; right: 10%; top: 40px; font-size: 1.2em; background: transparent; color: var(--magenta); border: 2px solid var(--magenta); padding: 12px 25px; cursor: pointer; z-index: 5; border-radius: 4px; font-family: var(--font-main); font-weight: bold; box-shadow: 0 0 10px rgba(255,0,255,0.2); margin:0;">
-                Diciembre
-            </button>
-        `;
-    } else {
-        // Si pierde, mantiene tu flujo original idéntico sin cambios visuales raros
-        endTitle.innerText = "CONEXIÓN PERDIDA";
-        endTitle.className = "neon-text-magenta";
-        endMessage.innerText = "La IA enemiga superó tus escudos.";
-        finalContainer.style.height = "auto";
-        finalContainer.innerHTML = `<button id="btn-final-action" onclick="restartApp()" class="btn-start" style="width: 100%;">NUEVA SESIÓN</button>`;
-    }
 }
 
 function giveHint() {
@@ -452,117 +404,22 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-// --- SISTEMA DE AVATARES ALEATORIOS ---
-const avatarsList = [
-    'avatar1.jpeg',
-    'avatar2.jpeg',
-    'avatar3.jpeg',
-    'avatar4.jpeg',
-    'avatar5.jpeg'
-];
+const avatarsList = ['avatar1.jpeg', 'avatar2.jpeg', 'avatar3.jpeg', 'avatar4.jpeg', 'avatar5.jpeg'];
 
 function loadRandomAvatars() {
     const container = document.getElementById('avatar-container');
     if (!container) return;
-    
     container.innerHTML = ''; 
-    
     const shuffledAvatars = avatarsList.sort(() => 0.5 - Math.random());
-    
     shuffledAvatars.forEach((src, index) => {
         const div = document.createElement('div');
         div.className = 'avatar-option';
-        if (index === 0) {
-            div.classList.add('selected');
-            gameState.selectedAvatarImg = src;
-        }
-        
+        if (index === 0) { div.classList.add('selected'); gameState.selectedAvatarImg = src; }
         div.onclick = function() { selectAvatar(src, this); };
-        
         const img = document.createElement('img');
-        img.src = src;
-        img.alt = `Vector ${index + 1}`;
-        
-        div.appendChild(img);
-        container.appendChild(div);
+        img.src = src; img.alt = `Vector ${index + 1}`;
+        div.appendChild(img); container.appendChild(div);
     });
 }
 
-// Inicializamos todo cuando carga la página
-window.onload = () => { 
-    setupControls(); 
-    initKeyboard(); 
-    loadRandomAvatars(); 
-};
-
-// ==========================================
-// KERNEL DE EVASIÓN INATRAPABLE (LA BROMA)
-// ==========================================
-function dodgeButton(btn, event) {
-    if (event) {
-        event.preventDefault(); // Anula el click nativo en dispositivos móviles
-    }
-    const container = btn.parentElement;
-    
-    // Calculamos los límites máximos basados en el HUD final
-    const maxX = container.clientWidth - btn.clientWidth;
-    const maxY = container.clientHeight - btn.clientHeight;
-    
-    let randomX, randomY;
-    let keepCalculating = true;
-
-    // Ejecutamos un bucle "while" (como en los viejos tiempos de VB) para validar la posición
-    while (keepCalculating) {
-        randomX = Math.floor(Math.random() * maxX);
-        randomY = Math.floor(Math.random() * Math.max(maxY, 120));
-
-        // ZONA DE EXCLUSIÓN: Mapeamos el cuadrante del botón Diciembre.
-        // Diciembre está a la derecha (coordenadas X altas) y arriba (coordenadas Y bajas).
-        // Si el número aleatorio cae en el 35% de la derecha y en el 40% superior, forzamos un re-cálculo.
-        const esZonaDiciembreX = randomX > (container.clientWidth * 0.60);
-        const esZonaDiciembreY = randomY < (container.clientHeight * 0.45);
-
-        if (!(esZonaDiciembreX && esZonaDiciembreY)) {
-            keepCalculating = false; // La posición es segura, salimos del bucle
-        }
-    }
-    
-    // Teletransportación instantánea a la zona segura
-    btn.style.left = randomX + 'px';
-    btn.style.top = randomY + 'px';
-}
-
-function acceptDefeat() {
-    playTick();
-    const endTitle = document.getElementById('end-title');
-    endTitle.innerText = "KERNEL LOCK";
-    endTitle.className = "neon-text-magenta";
-    
-    document.getElementById('final-controls-container').innerHTML = ""; // Limpiamos la botonera
-    
-    document.getElementById('end-message').innerHTML = `
-        <span style="color: var(--cyan); font-size: 1.3rem;">> NOTA REGISTRADA: DICIEMBRE</span><br><br>
-        Felicidades, demostraste un dominio total de las operaciones con números complejos...<br>
-        <span style="color: #ffff00;">(Luego les paso las fechas de diciembre).</span>
-    `;
-    
-    // Dejamos un botón limpio para reiniciar la app si lo desean
-    setTimeout(() => {
-        document.getElementById('final-controls-container').innerHTML = `<button onclick="restartApp()" class="btn-start" style="width: 100%;">NUEVA SESIÓN</button>`;
-    }, 4000);
-}
-
-// ==========================================
-// FUNCIÓN DE TESTEO: BYPASS DIRECTO
-// ==========================================
-function bypassA_PantallaFinal() {
-    playTick();
-    
-    // Ocultamos la pantalla de inicio
-    document.getElementById('screen-start').style.display = 'none';
-    
-    // Simulamos que el jugador ganó llamando a endGame con parámetro true
-    // Esto va a disparar automáticamente tu lógica del botón troll
-    gameState.score = 9999; // Un puntaje ficticio para el testeo
-    endGame(true);
-}
+window.onload = () => { setupControls(); initKeyboard(); loadRandomAvatars(); };
