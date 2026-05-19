@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>COMPLEX_STRIKE-Prof: Bejarano, Juan Marcelo</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+    <script>
+        window.MathJax = {
+            tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['\\[', '\\]']] },
+            options: { enableMenu: false }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+</head>
+<body>
+    <div class="grid-background"></div>
+    <div class="app-container glass-panel">
+        
+        <!-- PANTALLA DE INICIO -->
+        <div id="screen-start" class="screen" style="display: flex;">
+            <h1 class="neon-text-cyan title-main">COMPLEX_STRIKE: "OPERACIONES CON COMPLEJOS"</h1>
+            <p class="cyber-text">IDENTIFICA TU ESCUADRÓN:</p>
+            <input type="text" id="player-name-input" maxlength="15" placeholder="INGRESAR ID..." autocomplete="off">
+            
+            <p class="cyber-text mt-3">SELECCIONA TU AVATAR DE COMBATE:</p>
+            <div id="avatar-container" class="avatar-selector">
+                <!-- JS inyectará los avatares aleatorios aquí -->
+            </div>
+            <button onclick="startGame()" class="btn-start">INICIAR CONEXIÓN</button>
+
+            <!--     
+            <div style="margin-top: 20px; width: 100%; text-align: center;">
+                <button onclick="bypassA_PantallaFinal()" style="background: transparent; color: var(--magenta); font-family: var(--font-main); font-size: 0.8rem; font-weight: bold; padding: 5px 15px; border: 1px solid var(--magenta); border-radius: 4px; cursor: pointer; text-transform: uppercase; box-shadow: 0 0 5px rgba(255, 0, 255, 0.2); transition: all 0.2s;">
+                    > [DEV] BYPASS A PANTALLA FINAL
+                </button>
+            </div>
+            -->
+        </div>
+
+        <!-- PANTALLA DE DUELO -->
+        <div id="screen-game" class="screen" style="display: none;">
+            <header class="battle-hud">
+                <div class="stat-box player-stat-box">
+                    <div class="player-info">
+                        <img id="player-avatar-display" src="" class="hud-avatar" alt="Avatar">
+                        <span id="display-name" class="neon-text-cyan">EQUIPO</span>
+                    </div>
+                    <div class="hp-bar-container"><div id="player-hp" class="hp-bar hp-cyan" style="width: 100%;"></div></div>
+                </div>
+                
+                <div class="timer-container">
+                    <div id="timer-display" class="neon-text-magenta">02:00</div>
+                </div>
+
+                <div class="stat-box enemy-stat-box">
+                    <div class="enemy-info">
+                        <span id="enemy-name-display" class="neon-text-magenta">NÚCLEO IA 1</span>
+                    </div>
+                    <div class="hp-bar-container"><div id="monster-hp" class="hp-bar hp-magenta" style="width: 100%;"></div></div>
+                </div>
+            </header>
+
+            <div id="battle-scene" class="battle-scene border-neon-cyan">
+                <div id="battle-message" class="battle-message">SISTEMA EN LÍNEA</div>
+            </div>
+
+            <div class="exercise-card">
+                <div id="exercise-display" class="latex-container"></div>
+                <div class="answer-area">
+                    <div id="user-input-display" class="latex-container input-glow"></div>
+                </div>
+            </div>
+
+            <!-- Teclado Virtual -->
+            <div class="keyboard" id="keyboard"></div>
+
+            <div class="controls">
+                <button id="btn-spell" class="btn-neon-cyan">EJECUTAR</button>
+                <button id="btn-hint" class="btn-outline-magenta">ESCANEAR</button>
+            </div>
+        </div>
+
+        <!-- PANTALLA DE RESULTADOS -->
+        <div id="screen-end" class="screen" style="display: none;">
+            <h1 id="end-title" class="neon-text-cyan" style="font-size: 3rem;">DESCONEXIÓN</h1>
+            <p id="end-message" class="cyber-text"></p>
+            
+            <div id="print-area" style="width: 100%; text-align: center;">
+                <p id="end-score" class="neon-text-magenta" style="font-size: 4rem; margin: 20px 0;"></p>
+                <div class="mistakes-board" id="mistakes-board" style="display: none;">
+                    <h2 class="neon-text-magenta" style="font-size: 1.2rem; margin-bottom: 15px;">REGISTRO DE FALLOS (KERNEL PANIC)</h2>
+                    <ul id="mistakes-list"></ul>
+                </div>
+            </div>
+
+            <div id="final-controls-container" style="width: 100%; position: relative; margin-top: 30px;">
+                <button id="btn-final-action" onclick="restartApp()" class="btn-start" style="width: 100%;">NUEVA SESIÓN</button>
+            </div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
