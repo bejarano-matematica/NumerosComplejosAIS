@@ -8,6 +8,10 @@ let exerciseStep = 0;
 let autoExitTimer = null; 
 
 // --- BANCO DE EJERCICIOS AMPLIADO Y SIN REPETICIÓN (ALEATORIO) ---
+// ==========================================================================
+// BANCO DE EJERCICIOS CONSOLIDADO (UNIFICADO Y SIN REPETICIONES)
+// ==========================================================================
+
 const level2Bank = [
     { q: "i^{15} \\cdot i^{3} : i^{17}", a: "i" },
     { q: "i^{18} : i^{16}", a: "-1" },
@@ -15,14 +19,17 @@ const level2Bank = [
     { q: "8(\\cos 50^\\circ + i \\sin 50^\\circ) : 2(\\cos 35^\\circ + i \\sin 35^\\circ)", a: "4(\\cos(15^\\circ)+i\\sin(15^\\circ))" },
     { q: "4\\angle 120^\\circ \\cdot 2\\angle 90^\\circ", a: "8\\angle 210^\\circ" },
     { q: "12\\angle 315^\\circ : 3\\angle 45^\\circ", a: "4\\angle 270^\\circ" },
-    // NUEVOS EJERCICIOS DE EXAMEN (NIVEL 2)
     { q: "i^{45} \\cdot i^{12}", a: "i" },
     { q: "i^{102}", a: "-1" },
     { q: "5\\angle 30^\\circ \\cdot 2\\angle 45^\\circ", a: "10\\angle 75^\\circ" },
     { q: "20(\\cos 180^\\circ + i \\sin 180^\\circ) : 5(\\cos 90^\\circ + i \\sin 90^\\circ)", a: "4(\\cos(90^\\circ)+i\\sin(90^\\circ))" },
     { q: "3\\angle 15^\\circ \\cdot 4\\angle 75^\\circ", a: "12\\angle 90^\\circ" },
     { q: "i^{2026}", a: "-1" },
-    { q: "6(\\cos 210^\\circ + i \\sin 210^\\circ) : 2(\\cos 30^\\circ + i \\sin 30^\\circ)", a: "3(\\cos(180^\\circ)+i\\sin(180^\\circ))" }
+    // Ejercicios de imágenes y guía (Punto 44)
+    { q: "(-2 + i^{3}) \\cdot (1 + 2i^{5})", a: "-2-5i" },
+    { q: "(i^{24} + i^{25}) \\cdot i^{27}", a: "1-i" },
+    { q: "6(\\cos 210^\\circ + i \\sin 210^\\circ) : 2(\\cos 30^\\circ + i \\sin 30^\\circ)", a: "3(\\cos(180^\\circ)+i\\sin(180^\\circ))" },
+    { q: "2\\angle 120^\\circ : 4\\angle 90^\\circ", a: "0.5\\angle 30^\\circ" }
 ];
 
 const level3Bank = [
@@ -32,16 +39,18 @@ const level3Bank = [
     { q: "\\frac{2-i}{1+i}", a: "\\frac{1}{2}-\\frac{3}{2}i" },
     { q: "i^{34}", a: "-1" },
     { q: "2(1+i) - 3(2-i)", a: "-4+5i" },
-    // NUEVOS EJERCICIOS DE EXAMEN (NIVEL 3)
     { q: "(3 + 2i)(3 - 2i) - 5", a: "8" },
     { q: "\\frac{4+2i}{2-i}", a: "2i" },
     { q: "(1 - i)^{2} + 3i", a: "i" },
     { q: "2i(5 - 3i) + (1 - i)", a: "7+9i" },
     { q: "\\frac{5+5i}{1+2i}", a: "3-i" },
     { q: "(2 - i)^{2} + 4i", a: "3" },
-    { q: "(5 + i) \\cdot 2i - (4 - 3i)", a: "-6+13i" }
+    { q: "(5 + i) \\cdot 2i - (4 - 3i)", a: "-6+13i" },
+    // Ejercicios de imágenes y guía (Punto 44 divisiones complejas)
+    { q: "\\frac{3-5i}{3+i}", a: "0.4-1.8i" },
+    { q: "\\frac{-2i}{1+2i}", a: "-0.8-0.4i" },
+    { q: "(\\sqrt{2} + \\sqrt{8}i)^{2}", a: "-6+8i" }
 ];
-
 // Copias dinámicas para evitar repeticiones (Mazo de cartas)
 let activeLevel2Deck = [];
 let activeLevel3Deck = [];
