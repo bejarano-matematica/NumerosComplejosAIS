@@ -1,10 +1,13 @@
+// ==========================================
+// COMPLEX_STRIKE - CORE ENGINE
+// ==========================================
 let audioCtx;
 let timerInterval;
-const TIME_LIMIT = 120;
+const TIME_LIMIT = 180; // MEJORA: Tiempo extendido a 3 minutos (180 segundos) para cálculos complejos
 let exerciseStep = 0;
 let autoExitTimer = null; 
 
-// --- BANCO DE EJERCICIOS AMPLIADO Y SIN REPETICIÓN ---
+// --- BANCO DE EJERCICIOS AMPLIADO Y SIN REPETICIÓN (ALEATORIO) ---
 const level2Bank = [
     { q: "i^{15} \\cdot i^{3} : i^{17}", a: "i" },
     { q: "i^{18} : i^{16}", a: "-1" },
@@ -12,11 +15,14 @@ const level2Bank = [
     { q: "8(\\cos 50^\\circ + i \\sin 50^\\circ) : 2(\\cos 35^\\circ + i \\sin 35^\\circ)", a: "4(\\cos(15^\\circ)+i\\sin(15^\\circ))" },
     { q: "4\\angle 120^\\circ \\cdot 2\\angle 90^\\circ", a: "8\\angle 210^\\circ" },
     { q: "12\\angle 315^\\circ : 3\\angle 45^\\circ", a: "4\\angle 270^\\circ" },
-    // NUEVOS INYECTADOS
+    // NUEVOS EJERCICIOS DE EXAMEN (NIVEL 2)
     { q: "i^{45} \\cdot i^{12}", a: "i" },
     { q: "i^{102}", a: "-1" },
     { q: "5\\angle 30^\\circ \\cdot 2\\angle 45^\\circ", a: "10\\angle 75^\\circ" },
-    { q: "20(\\cos 180^\\circ + i \\sin 180^\\circ) : 5(\\cos 90^\\circ + i \\sin 90^\\circ)", a: "4(\\cos(90^\\circ)+i\\sin(90^\\circ))" }
+    { q: "20(\\cos 180^\\circ + i \\sin 180^\\circ) : 5(\\cos 90^\\circ + i \\sin 90^\\circ)", a: "4(\\cos(90^\\circ)+i\\sin(90^\\circ))" },
+    { q: "3\\angle 15^\\circ \\cdot 4\\angle 75^\\circ", a: "12\\angle 90^\\circ" },
+    { q: "i^{2026}", a: "-1" },
+    { q: "6(\\cos 210^\\circ + i \\sin 210^\\circ) : 2(\\cos 30^\\circ + i \\sin 30^\\circ)", a: "3(\\cos(180^\\circ)+i\\sin(180^\\circ))" }
 ];
 
 const level3Bank = [
@@ -26,11 +32,14 @@ const level3Bank = [
     { q: "\\frac{2-i}{1+i}", a: "\\frac{1}{2}-\\frac{3}{2}i" },
     { q: "i^{34}", a: "-1" },
     { q: "2(1+i) - 3(2-i)", a: "-4+5i" },
-    // NUEVOS INYECTADOS
+    // NUEVOS EJERCICIOS DE EXAMEN (NIVEL 3)
     { q: "(3 + 2i)(3 - 2i) - 5", a: "8" },
-    { q: "\\frac{4+2i}{2-i}", a: "+2i" },
+    { q: "\\frac{4+2i}{2-i}", a: "2i" },
     { q: "(1 - i)^{2} + 3i", a: "i" },
-    { q: "2i(5 - 3i) + (1 - i)", a: "7+9i" }
+    { q: "2i(5 - 3i) + (1 - i)", a: "7+9i" },
+    { q: "\\frac{5+5i}{1+2i}", a: "3-i" },
+    { q: "(2 - i)^{2} + 4i", a: "3" },
+    { q: "(5 + i) \\cdot 2i - (4 - 3i)", a: "-6+13i" }
 ];
 
 // Copias dinámicas para evitar repeticiones (Mazo de cartas)
@@ -60,12 +69,20 @@ function parseComplex(str) {
     return { re, im, reTerms, imTerms, totalTerms: parts.length };
 }
 
+// MEJORA CRÍTICA: Centrado elástico e inteligente para evitar cortes en celulares
 function renderMathDirectly(elementId, latexStr) {
     const el = document.getElementById(elementId);
     if (!el) return;
     
-    // OPTIMIZACIÓN VISUAL: Si la expresión es larga (como la forma polar), bajamos la fuente para que entre entera
-    el.style.fontSize = latexStr.length > 25 ? "1.1rem" : "1.5rem";
+    // Si la expresión es corta, la centramos. Si es larga, la tiramos a la izquierda para que no corte el módulo
+    if (latexStr.length > 25) {
+        el.style.justifyContent = "flex-start";
+        el.style.fontSize = "1.1rem";
+    } else {
+        el.style.justifyContent = "center";
+        el.style.fontSize = "1.5rem";
+    }
+    
     el.innerHTML = `\\( ${latexStr} \\)`;
     
     if (window.MathJax && window.MathJax.typesetPromise) {
@@ -107,7 +124,6 @@ function formatC(re, im) {
     return s;
 }
 
-// LÓGICA DE EXTRACCIÓN SIN REPETICIÓN
 function getExercise() {
     exerciseStep++;
     if (gameState.currentLevel === 1) {
@@ -145,11 +161,17 @@ function startGame() {
     document.getElementById('player-avatar-display').src = gameState.selectedAvatarImg || "https://images.unsplash.com/photo-1618336306544-cb22a9446340?q=80&w=150";
     document.getElementById('screen-start').style.display = 'none'; document.getElementById('screen-game').style.display = 'flex';
     gameState.currentLevel = 1; gameState.score = 0; gameState.playerHP = 100; gameState.monsterHP = 100; exerciseStep = 0;
-    activeLevel2Deck = []; activeLevel3Deck = []; // Reset de mazos
+    activeLevel2Deck = []; activeLevel3Deck = []; 
     initKeyboard(); updateUI(); nextExercise(); 
 }
 
-function restartApp() { clearInterval(timerInterval); document.getElementById('screen-end').style.display = 'none'; document.getElementById('screen-start').style.display = 'flex'; document.getElementById('player-name-input').value = ""; }
+function restartApp() { 
+    clearInterval(timerInterval); 
+    document.getElementById('screen-end').style.display = 'none'; 
+    document.getElementById('screen-start').style.display = 'flex'; 
+    document.getElementById('end-score').style.display = 'block'; // Restauramos visibilidad
+    document.getElementById('player-name-input').value = ""; 
+}
 
 function nextExercise() {
     if (gameState.isGameOver) return;
@@ -285,7 +307,6 @@ function checkAnswer() {
     processMiss();
 }
 
-// TRANSICIÓN ACELERADA (De 3.5s bajó a 1.2s totales para evitar lag)
 function processHit() {
     gameState.isBlocked = true; clearInterval(timerInterval);
     gameState.score += 100 + gameState.timeLeft; gameState.monsterHP -= 34; updateUI();
@@ -296,17 +317,13 @@ function processHit() {
             gameState.score += 500; 
             if (gameState.currentLevel < 3) {
                 gameState.currentLevel++; gameState.monsterHP = 100; exerciseStep = 0;
-                
-                // Reseteamos displays de entrada antes de inyectar el teclado
                 gameState.userString = ""; gameState.cursorPos = 0;
                 document.getElementById('user-input-display').innerHTML = "";
                 
                 updateUI(); 
                 updateMessage(`ACCEDIENDO AL NÚCLEO ${gameState.currentLevel}...`);
-                
                 if (typeof playLevelUpSound === 'function') playLevelUpSound(); 
                 
-                // Sincronización limpia de teclado y carga de ejercicio
                 setTimeout(() => { 
                     initKeyboard();
                     gameState.isBlocked = false; 
@@ -334,10 +351,9 @@ function updateUI() { document.getElementById('player-hp').style.width = Math.ma
 function updateMessage(t) { document.getElementById('battle-message').innerText = t; }
 function animateDamage(id) { const el = document.getElementById(id); if(el) { el.classList.add('shake'); setTimeout(() => el.classList.remove('shake'), 300); } }
 
-
+// FASE A: Muestra resultados y fallos de forma estática impecable sin botones molestos
 function endGame(win) {
-    gameState.isGameOver = true; 
-    clearInterval(timerInterval);
+    gameState.isGameOver = true; clearInterval(timerInterval);
     document.getElementById('screen-game').style.display = 'none'; 
     document.getElementById('screen-end').style.display = 'flex';
     
@@ -347,7 +363,6 @@ function endGame(win) {
     
     document.getElementById('end-score').innerText = `PUNTAJE: ${gameState.score}`;
     
-    // Armamos el tablero reglamentario de fallos
     const board = document.getElementById('mistakes-board'); 
     const list = document.getElementById('mistakes-list');
     list.innerHTML = '';
@@ -369,15 +384,14 @@ function endGame(win) {
         endTitle.className = "neon-text-cyan";
         endMessage.innerText = "Protocolos de seguridad de la IA comprometidos de forma exitosa.";
         
-        // BOTÓN LIMPIO DE ESPERA: Evita el amontonamiento inicial en el touch
+        // BOTÓN SEGURO: Permite analizar la pantalla antes de la evasión del touch
         finalContainer.style.height = "auto";
         finalContainer.innerHTML = `
-            <button onclick="activarFaseBroma()" class="btn-start" style="width: 100%; border-color: var(--cyan); color: var(--cyan);">
+            <button onclick="activarFaseBroma()" class="btn-start" style="width: 100%; border-color: var(--cyan); color: var(--cyan); margin: 0;">
                 > CONTINUAR PROTOCOLO
             </button>
         `;
     } else {
-        // Flujo tradicional si pierden la partida
         endTitle.innerText = "CONEXIÓN PERDIDA";
         endTitle.className = "neon-text-magenta";
         endMessage.innerText = "La IA enemiga superó tus escudos corporativos.";
@@ -386,11 +400,11 @@ function endGame(win) {
     }
 }
 
-// NUEVA FUNCIÓN: Limpia la pantalla de errores y despliega el lore de preceptoría sin amontonamiento
+// FASE B: Limpieza total de fallos y despliegue del entorno troll amplio y corporativo
 function activarFaseBroma() {
     playTick();
     
-    // Ocultamos el tablero de fallos de forma definitiva para liberar el espacio touch
+    // Ocultamos de raíz el tablero y el puntaje para liberar el espacio del dispositivo móvil
     document.getElementById('mistakes-board').style.display = 'none';
     document.getElementById('end-score').style.display = 'none';
     
@@ -401,23 +415,71 @@ function activarFaseBroma() {
     endTitle.innerText = "NÚCLEO MAINFRAME";
     endTitle.className = "neon-text-cyan";
     
-    // Agregamos un texto que acompañe de manera formal la acción
     endMessage.innerHTML = `
         <span style="color: #ffff00; font-family: var(--font-sec); font-size: 1.2rem;">SISTEMA DE ASIGNACIÓN DE CALIFICACIONES - IAS</span><br><br>
         Conexión establecida con las planillas de 5to año. Registre la condición definitiva del alumno en la base de datos:
     `;
     
-    // Otorgamos un contenedor alto exclusivo (180px) para que el botón tenga rango seguro de huida
+    // Contenedor elástico de 180px para que el botón tenga rango holgado de huida en el celu
     finalContainer.style.height = "180px";
     
     finalContainer.innerHTML = `
-        <button id="btn-aprobaste" tabindex="-1" onmouseover="dodgeButton(this)" ontouchstart="dodgeButton(this, event)" onclick="dodgeButton(this, event)" style="position: absolute; left: 10%; top: 40px; font-size: 1.2em; background: var(--cyan); color: #000; border: none; padding: 12px 25px; cursor: pointer; z-index: 10; border-radius: 4px; font-family: var(--font-main); font-weight: bold; box-shadow: 0 0 10px var(--cyan); margin:0;">
+        <button id="btn-aprobaste" tabindex="-1" onmouseover="dodgeButton(this)" ontouchstart="dodgeButton(this, event)" onclick="dodgeButton(this, event)" style="position: absolute; left: 10%; top: 45px; font-size: 1.2em; background: var(--cyan); color: #000; border: none; padding: 12px 25px; cursor: pointer; z-index: 10; border-radius: 4px; font-family: var(--font-main); font-weight: bold; box-shadow: 0 0 10px var(--cyan); margin:0;">
             Aprobaste
         </button>
-        <button onclick="acceptDefeat()" style="position: absolute; right: 10%; top: 40px; font-size: 1.2em; background: transparent; color: var(--magenta); border: 2px solid var(--magenta); padding: 12px 25px; cursor: pointer; z-index: 5; border-radius: 4px; font-family: var(--font-main); font-weight: bold; box-shadow: 0 0 10px rgba(255,0,255,0.2); margin:0;">
+        <button onclick="acceptDefeat()" style="position: absolute; right: 10%; top: 45px; font-size: 1.2em; background: transparent; color: var(--magenta); border: 2px solid var(--magenta); padding: 12px 25px; cursor: pointer; z-index: 5; border-radius: 4px; font-family: var(--font-main); font-weight: bold; box-shadow: 0 0 10px rgba(255,0,255,0.2); margin:0;">
             Diciembre
         </button>
     `;
+}
+
+// ZONA DE EXCLUSIÓN INTELIGENTE: Bloquea el cuadrante superior derecho para proteger "Diciembre"
+function dodgeButton(btn, event) {
+    if (event) {
+        event.preventDefault(); 
+    }
+    const container = btn.parentElement;
+    
+    const maxX = container.clientWidth - btn.clientWidth;
+    const maxY = container.clientHeight - btn.clientHeight;
+    
+    let randomX, randomY;
+    let keepCalculating = true;
+
+    while (keepCalculating) {
+        randomX = Math.floor(Math.random() * maxX);
+        randomY = Math.floor(Math.random() * Math.max(maxY, 120));
+
+        // Si cae en el 35% de la derecha y en el 45% superior (área de Diciembre), recalculamos de inmediato
+        const esZonaDiciembreX = randomX > (container.clientWidth * 0.60);
+        const esZonaDiciembreY = randomY < (container.clientHeight * 0.45);
+
+        if (!(esZonaDiciembreX && esZonaDiciembreY)) {
+            keepCalculating = false; 
+        }
+    }
+    
+    btn.style.left = randomX + 'px';
+    btn.style.top = randomY + 'px';
+}
+
+function acceptDefeat() {
+    playTick();
+    const endTitle = document.getElementById('end-title');
+    endTitle.innerText = "KERNEL LOCK";
+    endTitle.className = "neon-text-magenta";
+    
+    document.getElementById('final-controls-container').innerHTML = ""; 
+    
+    document.getElementById('end-message').innerHTML = `
+        <span style="color: var(--cyan); font-size: 1.3rem;">> NOTA REGISTRADA CON ÉXITO.</span><br><br>
+        Felicidades, demostraste un dominio total de las operaciones con complejos...<br>
+        <span style="color: #ffff00;">(Pero nos vemos en el pizarrón la semana que viene para rendir igual).</span>
+    `;
+    
+    setTimeout(() => {
+        document.getElementById('final-controls-container').innerHTML = `<button onclick="restartApp()" class="btn-start" style="width: 100%;">NUEVA SESIÓN</button>`;
+    }, 4000);
 }
 
 function giveHint() {
