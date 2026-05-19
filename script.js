@@ -417,7 +417,7 @@ function activarFaseBroma() {
     
     endMessage.innerHTML = `
         <span style="color: #ffff00; font-family: var(--font-sec); font-size: 1.2rem;">SISTEMA DE ASIGNACIÓN DE CALIFICACIONES - IAS</span><br><br>
-        Conexión establecida con las planillas de 5to año. Registre la condición definitiva del alumno en la base de datos:
+        Conexión establecida con las planillas de 6to año B. Registre la condición definitiva del equipo en la base de datos:
     `;
     
     // Contenedor elástico de 180px para que el botón tenga rango holgado de huida en el celu
