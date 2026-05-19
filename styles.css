@@ -161,4 +161,11 @@ body {
     .timer-container { font-size: 1.1rem; }
     .player-info, .enemy-info { font-size: 0.85rem; }
     .latex-container { font-size: 1rem !important; padding: 6px 10px; }
+    #btn-aprobaste, 
+    #final-controls-container button[onclick="acceptDefeat()"] {
+        padding: 8px 16px !important;  /* Reducimos el padding para que no sean tan toscos */
+        font-size: 0.95rem !important;  /* Achicamos la tipografía un toque */
+        letter-spacing: 0px !important; /* Evitamos que se estiren horizontalmente */
+    }
+    
 }
