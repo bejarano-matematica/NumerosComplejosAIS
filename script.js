@@ -4,7 +4,6 @@ const TIME_LIMIT = 120;
 let exerciseStep = 0;
 let autoExitTimer = null; 
 
-// --- BANCO DE EJERCICIOS ---
 // --- BANCO DE EJERCICIOS AMPLIADO Y SIN REPETICIÓN ---
 const level2Bank = [
     { q: "i^{15} \\cdot i^{3} : i^{17}", a: "i" },
