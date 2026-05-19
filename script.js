@@ -472,9 +472,9 @@ function acceptDefeat() {
     document.getElementById('final-controls-container').innerHTML = ""; 
     
     document.getElementById('end-message').innerHTML = `
-        <span style="color: var(--cyan); font-size: 1.3rem;">> NOTA REGISTRADA CON ÉXITO.</span><br><br>
+        <span style="color: var(--cyan); font-size: 1.3rem;">> ¿Elegieron Diciembre? NOTA REGISTRADA CON ÉXITO.</span><br><br>
         Felicidades, demostraste un dominio total de las operaciones con complejos...<br>
-        <span style="color: #ffff00;">(Pero nos vemos en el pizarrón la semana que viene para rendir igual).</span>
+        <span style="color: #ffff00;">(Pero como elegieron diciembre, luego les comparto las fechas).</span>
     `;
     
     setTimeout(() => {
