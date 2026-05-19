@@ -5,13 +5,19 @@ let exerciseStep = 0;
 let autoExitTimer = null; 
 
 // --- BANCO DE EJERCICIOS ---
+// --- BANCO DE EJERCICIOS AMPLIADO Y SIN REPETICIÓN ---
 const level2Bank = [
     { q: "i^{15} \\cdot i^{3} : i^{17}", a: "i" },
     { q: "i^{18} : i^{16}", a: "-1" },
     { q: "2(\\cos 60^\\circ + i \\sin 60^\\circ) \\cdot 3(\\cos 110^\\circ + i \\sin 110^\\circ)", a: "6(\\cos(170^\\circ)+i\\sin(170^\\circ))" },
     { q: "8(\\cos 50^\\circ + i \\sin 50^\\circ) : 2(\\cos 35^\\circ + i \\sin 35^\\circ)", a: "4(\\cos(15^\\circ)+i\\sin(15^\\circ))" },
     { q: "4\\angle 120^\\circ \\cdot 2\\angle 90^\\circ", a: "8\\angle 210^\\circ" },
-    { q: "12\\angle 315^\\circ : 3\\angle 45^\\circ", a: "4\\angle 270^\\circ" }
+    { q: "12\\angle 315^\\circ : 3\\angle 45^\\circ", a: "4\\angle 270^\\circ" },
+    // NUEVOS INYECTADOS
+    { q: "i^{45} \\cdot i^{12}", a: "i" },
+    { q: "i^{102}", a: "-1" },
+    { q: "5\\angle 30^\\circ \\cdot 2\\angle 45^\\circ", a: "10\\angle 75^\\circ" },
+    { q: "20(\\cos 180^\\circ + i \\sin 180^\\circ) : 5(\\cos 90^\\circ + i \\sin 90^\\circ)", a: "4(\\cos(90^\\circ)+i\\sin(90^\\circ))" }
 ];
 
 const level3Bank = [
@@ -20,7 +26,12 @@ const level3Bank = [
     { q: "(2+3i)^{2}", a: "-5+12i" },
     { q: "\\frac{2-i}{1+i}", a: "\\frac{1}{2}-\\frac{3}{2}i" },
     { q: "i^{34}", a: "-1" },
-    { q: "2(1+i) - 3(2-i)", a: "-4+5i" }
+    { q: "2(1+i) - 3(2-i)", a: "-4+5i" },
+    // NUEVOS INYECTADOS
+    { q: "(3 + 2i)(3 - 2i) - 5", a: "8" },
+    { q: "\\frac{4+2i}{2-i}", a: "+2i" },
+    { q: "(1 - i)^{2} + 3i", a: "i" },
+    { q: "2i(5 - 3i) + (1 - i)", a: "7+9i" }
 ];
 
 // Copias dinámicas para evitar repeticiones (Mazo de cartas)
@@ -324,15 +335,24 @@ function updateUI() { document.getElementById('player-hp').style.width = Math.ma
 function updateMessage(t) { document.getElementById('battle-message').innerText = t; }
 function animateDamage(id) { const el = document.getElementById(id); if(el) { el.classList.add('shake'); setTimeout(() => el.classList.remove('shake'), 300); } }
 
+
 function endGame(win) {
-    gameState.isGameOver = true; clearInterval(timerInterval);
-    document.getElementById('screen-game').style.display = 'none'; document.getElementById('screen-end').style.display = 'flex';
-    document.getElementById('end-title').innerText = win ? "SISTEMA VULNERADO" : "CONEXIÓN PERDIDA";
-    document.getElementById('end-title').className = win ? "neon-text-cyan" : "neon-text-magenta";
-    document.getElementById('end-message').innerText = win ? "Has dominado el kernel de números complejos." : "La IA enemiga superó tus escudos.";
+    gameState.isGameOver = true; 
+    clearInterval(timerInterval);
+    document.getElementById('screen-game').style.display = 'none'; 
+    document.getElementById('screen-end').style.display = 'flex';
+    
+    const endTitle = document.getElementById('end-title');
+    const endMessage = document.getElementById('end-message');
+    const finalContainer = document.getElementById('final-controls-container');
+    
     document.getElementById('end-score').innerText = `PUNTAJE: ${gameState.score}`;
-    const board = document.getElementById('mistakes-board'); const list = document.getElementById('mistakes-list');
+    
+    // Armamos el tablero reglamentario de fallos
+    const board = document.getElementById('mistakes-board'); 
+    const list = document.getElementById('mistakes-list');
     list.innerHTML = '';
+    
     if (gameState.mistakes.length > 0) {
         board.style.display = 'block';
         gameState.mistakes.forEach((err) => {
@@ -341,7 +361,64 @@ function endGame(win) {
             list.appendChild(li);
         });
         if (window.MathJax) MathJax.typesetPromise([list]);
-    } else { board.style.display = 'none'; }
+    } else { 
+        board.style.display = 'none'; 
+    }
+
+    if (win) {
+        endTitle.innerText = "SISTEMA VULNERADO";
+        endTitle.className = "neon-text-cyan";
+        endMessage.innerText = "Protocolos de seguridad de la IA comprometidos de forma exitosa.";
+        
+        // BOTÓN LIMPIO DE ESPERA: Evita el amontonamiento inicial en el touch
+        finalContainer.style.height = "auto";
+        finalContainer.innerHTML = `
+            <button onclick="activarFaseBroma()" class="btn-start" style="width: 100%; border-color: var(--cyan); color: var(--cyan);">
+                > CONTINUAR PROTOCOLO
+            </button>
+        `;
+    } else {
+        // Flujo tradicional si pierden la partida
+        endTitle.innerText = "CONEXIÓN PERDIDA";
+        endTitle.className = "neon-text-magenta";
+        endMessage.innerText = "La IA enemiga superó tus escudos corporativos.";
+        finalContainer.style.height = "auto";
+        finalContainer.innerHTML = `<button id="btn-final-action" onclick="restartApp()" class="btn-start" style="width: 100%;">NUEVA SESIÓN</button>`;
+    }
+}
+
+// NUEVA FUNCIÓN: Limpia la pantalla de errores y despliega el lore de preceptoría sin amontonamiento
+function activarFaseBroma() {
+    playTick();
+    
+    // Ocultamos el tablero de fallos de forma definitiva para liberar el espacio touch
+    document.getElementById('mistakes-board').style.display = 'none';
+    document.getElementById('end-score').style.display = 'none';
+    
+    const endTitle = document.getElementById('end-title');
+    const endMessage = document.getElementById('end-message');
+    const finalContainer = document.getElementById('final-controls-container');
+    
+    endTitle.innerText = "NÚCLEO MAINFRAME";
+    endTitle.className = "neon-text-cyan";
+    
+    // Agregamos un texto que acompañe de manera formal la acción
+    endMessage.innerHTML = `
+        <span style="color: #ffff00; font-family: var(--font-sec); font-size: 1.2rem;">SISTEMA DE ASIGNACIÓN DE CALIFICACIONES - IAS</span><br><br>
+        Conexión establecida con las planillas de 5to año. Registre la condición definitiva del alumno en la base de datos:
+    `;
+    
+    // Otorgamos un contenedor alto exclusivo (180px) para que el botón tenga rango seguro de huida
+    finalContainer.style.height = "180px";
+    
+    finalContainer.innerHTML = `
+        <button id="btn-aprobaste" tabindex="-1" onmouseover="dodgeButton(this)" ontouchstart="dodgeButton(this, event)" onclick="dodgeButton(this, event)" style="position: absolute; left: 10%; top: 40px; font-size: 1.2em; background: var(--cyan); color: #000; border: none; padding: 12px 25px; cursor: pointer; z-index: 10; border-radius: 4px; font-family: var(--font-main); font-weight: bold; box-shadow: 0 0 10px var(--cyan); margin:0;">
+            Aprobaste
+        </button>
+        <button onclick="acceptDefeat()" style="position: absolute; right: 10%; top: 40px; font-size: 1.2em; background: transparent; color: var(--magenta); border: 2px solid var(--magenta); padding: 12px 25px; cursor: pointer; z-index: 5; border-radius: 4px; font-family: var(--font-main); font-weight: bold; box-shadow: 0 0 10px rgba(255,0,255,0.2); margin:0;">
+            Diciembre
+        </button>
+    `;
 }
 
 function giveHint() {
